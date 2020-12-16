@@ -85,7 +85,7 @@ app.delete('/api/student/:id',(req,res)=>{
     
     fs.unlink(`src/newAdmission/${id}.json`,(err)=>{
         if(err){
-            res.sendStatus(400);
+            res.sendStatus(404);
         }
         else{
             res.sendStatus(200);
