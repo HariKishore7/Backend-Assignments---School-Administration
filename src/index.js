@@ -3,7 +3,7 @@ const app = express()
 const bodyParser = require("body-parser");
 const port = 8080
 const fs=require('fs');
-var studentArray=require('./InitialData');
+const studentArray=require('./InitialData');
 app.use(express.urlencoded());
 
 // Parse JSON bodies (as sent by API clients)
@@ -15,82 +15,71 @@ app.get('/api/student',(req,res)=>{
     res.send(studentArray);
 });
 app.get('/api/student/:id',(req,res)=>{
-    let id=Number(req.params.id);
-    if(id>=1 && id<=7){
-        res.send({
-            id:studentArray[id-1].id,
-            name:studentArray[id-1].name,
-            currentClass:studentArray[id-1].currentClass,
-            division:studentArray[id-1].division
-        });
-    }
-    else{
+    const object = studentArray[req.params.id-1];
+    if(typeof object==="undefined"){
         res.sendStatus(404);
     }
-    
+    else{
+        res.send(object);
+    }    
 });
 
 app.post('/api/student',(req,res)=>{
-    const bodyData=req.body;
-    bodyData.id=new Date().valueOf();
-    const name=req.body.name;
-    const currentClass=req.body.currentClass;
-    const division=req.body.division;
-    if(name && currentClass &&division){
-        fs.writeFile(`src/newAdmission/${bodyData.id}.json`,JSON.stringify(bodyData),'utf-8',(err)=>{
-            if(err){
-                res.sendStatus(400);
-            }
-            else{
-                res.set({
-                    'content-type':'application/x-www-form-urlencoded'
-                });
-                res.send(bodyData);
-            }
-        })
+    if(req.body.name && req.body.currentClass && req.body.divison){
+        const id=studentArray.length+1;
+        const name=req.body.name;
+        const currentClass=Number(req.body.currentClass);
+        const division=req.body.division;
+        studentArray.push({
+            id:id,
+            name:name,
+            currentClass:currentClass,
+            division:division,
+        });
+        res.send({id:id});
     }
     else{
-        res.sendStatus(400)
-    } 
+        res.sendStatus(400);
+    }
 });
 
-app.put('/api/student/:id',(req,res)=>{
-    const id=req.params.id;
-    fs.readFile(`src/newAdmission/${id}.json`,'utf-8',(err,fileData)=>{
-        if(err){
-            res.sendStatus(400);
+const nullOrUndefined=(variable)=>{
+    return variable===null|| variable===undefined ? true : false;
+}
+
+app.put('/api/student/:id',(req,res)=>{    
+    const object=studentArray[req.params.id-1];
+    if(nullOrUndefined(object)){
+        res.sendStatus(400);
+    }
+    else{
+        if(req.body.name||req.body.currentClass||req.body.division){
+            if(req.body.name){
+                object.name=req.body.name;
+            }
+            if(req.body.currentClass){
+                object.currentClass = Number(req.body.currentClass);  
+            }
+            if (req.body.division) {
+                object.division = req.body.division;
+            }
+            res.sendStatus(200);
         }
         else{
-            const existingData=JSON.parse(fileData);
-            existingData.name=req.body.name;
-            fs.writeFile(`src/newAdmission/${id}.json`,JSON.stringify(existingData),'utf-8',(err)=>{
-                if(err){
-                    res.sendStatus(400);
-                }
-                else{
-                    res.set({
-                        'content-type':'application/x-www-form-urlencoded'
-                    });
-                    res.send(existingData);
-                }
-            });
+            res.sendStatus(400);
         }
-    })
-        
-    
+    }
 });
 
 app.delete('/api/student/:id',(req,res)=>{
-    const id=req.params.id;
-    
-    fs.unlink(`src/newAdmission/${id}.json`,(err)=>{
-        if(err){
-            res.sendStatus(404);
-        }
-        else{
-            res.sendStatus(200);
-        }
-    })
+    const object =studentArray[req.params.id-1];
+    if(typeof object==='undefined'){
+        res.sendStatus(404);
+    }
+    else{
+        delete studentArray[req.params.id-1];
+        res.sendStatus(200);
+    }
 });
 
 
